@@ -1,6 +1,7 @@
-from models import LogEntry
 from collections import Counter
 from typing import List, Dict
+
+from models import LogEntry
 
 
 def compute_cloudlog_metrics(log_entries: List[LogEntry]) -> Dict[str, object]:
