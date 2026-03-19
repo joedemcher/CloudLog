@@ -1,5 +1,6 @@
 import re
-from models import LogEntry
+import os
+from .models import LogEntry
 from typing import Optional
 
 
