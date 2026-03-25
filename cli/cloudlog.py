@@ -2,10 +2,10 @@ import sys
 from pathlib import Path
 import argparse
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from worker.test_parser import parse_line
+from worker.parser import parse_line
 from worker.metrics import compute_cloudlog_metrics
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
 def format_metrics(metrics: dict) -> str:
