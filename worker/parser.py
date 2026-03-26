@@ -48,15 +48,3 @@ def parse_line(line: str) -> Optional[LogEntry]:
         status=int(data["status"]),
         bytes=bytes_sent,
     )
-
-
-def main():
-    with open("worker/sample.log") as f:
-        parsed = tuple(filter(None, (parse_line(line.strip()) for line in f)))
-
-    for entry in parsed:
-        print(entry)
-
-
-if __name__ == "__main__":
-    main()
