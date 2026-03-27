@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import uuid
+from decimal import Decimal
 from datetime import datetime, timezone
 
 import boto3
@@ -128,9 +129,15 @@ def _get_job(job_id):
     return result.get("Item")
 
 
+def _json_default(obj):
+    if isinstance(obj, Decimal):
+        return int(obj) if obj == obj.to_integral_value() else float(obj)
+    return str(obj)
+
+
 def response(status_code, body):
     return {
         "statusCode": status_code,
         "headers": {"Content-Type": "application/json"},
-        "body": json.dumps(body, default=str),
+        "body": json.dumps(body, default=_json_default),
     }
