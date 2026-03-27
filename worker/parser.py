@@ -28,7 +28,7 @@ def parse_request(request: str):
     return None, None
 
 
-def parse_log_lines(line: str) -> Optional[LogEntry]:
+def parse_log_line(line: str) -> Optional[LogEntry]:
     match = LOG_PATTERN.match(line)
     if not match:
         return None
@@ -48,3 +48,7 @@ def parse_log_lines(line: str) -> Optional[LogEntry]:
         status=int(data["status"]),
         bytes=bytes_sent,
     )
+
+
+def parse_log_lines(lines: list) -> list:
+    return [entry for line in lines if (entry := parse_log_line(line)) is not None]
