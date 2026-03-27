@@ -28,7 +28,7 @@ def parse_request(request: str):
     return None, None
 
 
-def parse_line(line: str) -> Optional[LogEntry]:
+def parse_log_lines(line: str) -> Optional[LogEntry]:
     match = LOG_PATTERN.match(line)
     if not match:
         return None
