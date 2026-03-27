@@ -1,11 +1,16 @@
 import sys
+import os
 from pathlib import Path
 import argparse
 
 from worker.parser import parse_line
 from worker.metrics import compute_cloudlog_metrics
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import os
+
+API_URL = os.environ.get("CLOUDLOG_API_URL")
+if not API_URL:
+    raise SystemExit("Error: CLOUDLOG_API_URL environment variable not set.")
 
 
 def format_metrics(metrics: dict) -> str:

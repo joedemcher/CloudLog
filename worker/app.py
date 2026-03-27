@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 import boto3
 
 from metrics import compute_metrics
-from parser import parse_log_lines
+from parser import parse_line
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
