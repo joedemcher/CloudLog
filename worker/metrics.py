@@ -4,7 +4,7 @@ from typing import List, Dict
 from models import LogEntry
 
 
-def compute_cloudlog_metrics(log_entries: List[LogEntry]) -> Dict[str, object]:
+def compute_metrics(log_entries: List[LogEntry]) -> Dict[str, object]:
     total_requests = len(log_entries)
     ip_counter = Counter(log.ip for log in log_entries)
     unique_ips = len(ip_counter)
