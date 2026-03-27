@@ -1,4 +1,5 @@
 from collections import Counter
+from decimal import Decimal
 from typing import List, Dict
 
 from models import LogEntry
@@ -9,12 +10,12 @@ def compute_metrics(log_entries: List[LogEntry]) -> Dict[str, object]:
     ip_counter = Counter(log.ip for log in log_entries)
     unique_ips = len(ip_counter)
     top_10_ips = ip_counter.most_common(10)
-    status_code_distribution = dict(Counter(log.status for log in log_entries))
+    status_code_distribution = {str(k): v for k, v in Counter(log.status for log in log_entries).items()}
     error_count = sum(1 for log in log_entries if 400 <= log.status < 600)
-    error_rate = (error_count / total_requests) if total_requests > 0 else 0.0
+    error_rate = (Decimal(error_count) / Decimal(total_requests)) if total_requests > 0 else Decimal(0)
     total_bytes = sum(log.bytes for log in log_entries)
     average_bytes_per_request = (
-        (total_bytes / total_requests) if total_requests > 0 else 0.0
+        (Decimal(total_bytes) / Decimal(total_requests)) if total_requests > 0 else Decimal(0)
     )
 
     return {
