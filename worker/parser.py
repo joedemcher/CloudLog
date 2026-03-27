@@ -1,5 +1,5 @@
 import re
-from .models import LogEntry
+from models import LogEntry
 from typing import Optional
 
 
