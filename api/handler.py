@@ -61,7 +61,6 @@ def create_job(event):
         }
     )
 
-    # Push message to SQS
     sqs.send_message(
         QueueUrl=QUEUE_URL,
         MessageBody=json.dumps({"job_id": job_id, "s3_key": s3_key}),
@@ -119,7 +118,6 @@ def get_job_report(job_id):
             },
         )
     else:
-        # PENDING or PROCESSING — report not ready yet
         return response(
             202, {"job_id": job_id, "status": status, "message": "Report not ready yet"}
         )
