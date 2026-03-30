@@ -13,6 +13,8 @@
 3. [Design Decisions](#3-design-decisions)
 4. [Failure Handling](#4-failure-handling)
 5. [Cost Considerations](#5-cost-considerations)
+6. [How to Deploy](#6-how-to-deploy)
+7. [CLI Demo](#7-cli-demo)
 
 ---
 
@@ -127,3 +129,144 @@ Estimated monthly cost for a portfolio environment with light usage:
 
 > **Production note:** In production, private subnets with a NAT Gateway would be preferred for network isolation. The $30+/month fixed cost is the primary reason this is omitted here, and is documented as a known tradeoff.
 
+---
+
+## 6. How to Deploy
+
+### Prerequisites
+
+- AWS CLI configured with appropriate credentials
+- Terraform >= 1.6
+- Docker with buildx (for cross-platform builds)
+- Python 3.12+
+
+### 1. Provision infrastructure
+
+```zsh
+cd terraform
+terraform init
+terraform apply
+```
+
+### 2. Set environment variables
+
+```zsh
+export CLOUDLOG_API_URL=$(terraform output -raw api_gateway_url)
+export CLOUDLOG_S3_BUCKET=$(terraform output -raw s3_bucket_name)
+export ECR_URL=$(terraform output -raw ecr_repository_url)
+```
+
+### 3. Build and push the worker image
+
+```zsh
+# Authenticate Docker to ECR
+aws ecr get-login-password --region us-east-1 \
+  | docker login --username AWS --password-stdin $ECR_URL
+
+# Build for linux/amd64 (required for Fargate)
+docker build --platform linux/amd64 -t cloudlog-worker ./worker
+docker tag cloudlog-worker:latest $ECR_URL:latest
+docker push $ECR_URL:latest
+
+# Deploy to ECS
+aws ecs update-service \
+  --cluster cloudlog-cluster \
+  --service cloudlog-worker \
+  --force-new-deployment
+```
+
+### 4. Install CLI dependencies
+
+```zsh
+pip install boto3 requests
+```
+
+### 5. Submit a log file
+
+```zsh
+python cli/cloudlog.py submit path/to/access.log --wait
+```
+
+---
+
+## 7. CLI Demo
+
+### Submit a log file and wait for results
+
+```zsh
+$ python cli/cloudlog.py submit worker/sample.log --wait            
+Uploading sample.log to S3...
+Creating job...
+Job created: 91d779f2-2bce-4d15-88bc-3196e3fab182
+Waiting for job to complete  done.
+Total Requests: 50
+Unique IPs: 9
+
+Top IPs:
+  10.0.0.5 — 7
+  192.168.1.1 — 6
+  192.168.1.2 — 6
+  10.0.0.8 — 6
+  172.16.0.3 — 6
+  192.168.1.3 — 5
+  10.0.0.9 — 5
+  192.168.1.4 — 5
+  172.16.0.4 — 4
+
+Status Codes:
+  200 — 30
+  201 — 4
+  401 — 5
+  500 — 3
+  204 — 1
+  403 — 3
+  404 — 4
+
+Error Rate: 0.30%
+
+Total Bytes: 139257
+Average Bytes / Request: 2785.14
+
+```
+
+### Check job status
+
+```zsh
+$ python cli/cloudlog.py status 91d779f2-2bce-4d15-88bc-3196e3fab182
+Job ID: 91d779f2-2bce-4d15-88bc-3196e3fab182
+Status: COMPLETED
+Created: 2026-03-27T20:05:57.499137+00:00
+```
+
+### Fetch the report
+
+```zsh
+$ python cli/cloudlog.py report 91d779f2-2bce-4d15-88bc-3196e3fab182
+Total Requests: 50
+Unique IPs: 9
+
+Top IPs:
+  10.0.0.5 — 7
+  192.168.1.1 — 6
+  192.168.1.2 — 6
+  10.0.0.8 — 6
+  172.16.0.3 — 6
+  192.168.1.3 — 5
+  10.0.0.9 — 5
+  192.168.1.4 — 5
+  172.16.0.4 — 4
+
+Status Codes:
+  200 — 30
+  201 — 4
+  401 — 5
+  500 — 3
+  204 — 1
+  403 — 3
+  404 — 4
+
+Error Rate: 0.30%
+
+Total Bytes: 139257
+Average Bytes / Request: 2785.14
+```
