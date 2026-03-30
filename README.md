@@ -1,4 +1,4 @@
-# CloudLog
+# ☁️ CloudLog
 
 **Cloud-native async log processing system**
 
