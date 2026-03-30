@@ -12,6 +12,7 @@
 2. [Architecture](#2-architecture)
 3. [Design Decisions](#3-design-decisions)
 4. [Failure Handling](#4-failure-handling)
+5. [Cost Considerations](#5-cost-considerations)
 
 ---
 
@@ -107,4 +108,22 @@ Each job has a stable `job_id` generated at submission time. DynamoDB updates us
 ### Job status reporting
 
 The worker marks jobs `PROCESSING` immediately on pickup, before any S3 download or parsing begins. On any exception it marks the job `FAILED` with the error message stored in DynamoDB. The CLI's `report` command surfaces both states explicitly so that the user always knows whether to wait or investigate.
+
+---
+
+## 5. Cost Considerations
+
+Estimated monthly cost for a portfolio environment with light usage:
+
+| Service | Notes | Est. monthly cost |
+|---|---|---|
+| ECS Fargate | 0.25 vCPU / 512 MB, running continuously | ~$9–11 |
+| DynamoDB | PAY_PER_REQUEST, low traffic | ~$0 |
+| SQS | Free tier: 1M requests/month | ~$0 |
+| S3 | Minimal storage + GET/PUT requests | <$1 |
+| API Gateway | $3.50 per million calls | ~$0 |
+| CloudWatch Logs | 14-day retention, low volume | <$1 |
+| NAT Gateway | Avoided by ECS tasks employing public IPs | $0 (saved ~$30) |
+
+> **Production note:** In production, private subnets with a NAT Gateway would be preferred for network isolation. The $30+/month fixed cost is the primary reason this is omitted here, and is documented as a known tradeoff.
 
