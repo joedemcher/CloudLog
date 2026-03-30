@@ -10,6 +10,8 @@
 
 1. [Problem Statement](#1-problem-statement)
 2. [Architecture](#2-architecture)
+3. [Design Decisions](#3-design-decisions)
+4. [Failure Handling](#4-failure-handling)
 
 ---
 
@@ -73,4 +75,36 @@ cloudlog/
 │   └── cloudlog.py     # CLI client
 └── README.md
 ```
+
+---
+
+## 3. Design Decisions
+
+| Decision | Rationale |
+|---|---|
+| **ECS Fargate over Lambda** | The worker is a long-running polling loop as it runs continuously and pulls work from SQS. Lambda's invocation model is event-triggered with a max runtime of 15 minutes and is the wrong fit. ECS runs the container indefinitely with no cold start overhead per message. |
+| **DynamoDB over RDS** | Job records have a single access pattern: get or update by `job_id`. There are no joins, no relational queries, and no schema migrations. DynamoDB's `PAY_PER_REQUEST` billing essentially means zero cost at low traffic. |
+| **SQS over direct invocation** | SQS decouples the API from the worker entirely. If the worker is down, messages queue up and are processed when it recovers. Built-in retry and DLQ fallback require no application code. |
+| **Public IP over NAT Gateway** | ECS tasks are assigned public IPs rather than routing through a NAT Gateway. This avoids the $30+/month fixed cost, which is unnecessary for a portfolio environment. In production, private subnets with a NAT would be preferred for network isolation purposes. |
+| **Separate ECS IAM roles** | ECS uses two IAM roles: an execution role (used by ECS to pull the Docker image from ECR and send logs to CloudWatch) and a task role (used by the worker's `boto3` calls at runtime). Combining them would over-permission the application code. |
+
+---
+
+## 4. Failure Handling
+
+### Retries
+
+SQS visibility timeout is set to 300 seconds (longer than any realistic processing time). If the worker crashes or throws an unhandled exception before deleting the message, SQS makes the message visible again after the timeout and another attempt is made. The worker only deletes the SQS message upon success.
+
+### Dead-letter queue (DLQ)
+
+After 3 failed receive attempts (configurable via `sqs_max_receive_count`), SQS automatically moves the message to the DLQ. A CloudWatch alarm fires when the DLQ message count exceeds zero. This is handled entirely by SQS configuration options and requires no application code.
+
+### Idempotency
+
+Each job has a stable `job_id` generated at submission time. DynamoDB updates use `UpdateItem` rather than `PutItem`, so re-processing the same `job_id` overwrites the record safely rather than creating a duplicate.
+
+### Job status reporting
+
+The worker marks jobs `PROCESSING` immediately on pickup, before any S3 download or parsing begins. On any exception it marks the job `FAILED` with the error message stored in DynamoDB. The CLI's `report` command surfaces both states explicitly so that the user always knows whether to wait or investigate.
 
