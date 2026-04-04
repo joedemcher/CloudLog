@@ -40,7 +40,7 @@ CloudLog solves this with an asynchronous processing pipeline. The user submits 
 
 ## 2. Architecture
 
-![CloudLog Architecture](architecture.png)
+![CloudLog Architecture](architecture/deployed_architecture.jpg)
 
 ### Request flow
 
