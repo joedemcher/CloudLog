@@ -178,7 +178,7 @@ aws ecr get-login-password --region us-east-1 \
 # Build for linux/amd64 (required for Fargate)
 docker build --platform linux/amd64 -t cloudlog-worker ./worker
 docker tag cloudlog-worker:latest $ECR_URL:latest
-docker push $ECR_URL:latest
+docker push "${ECR_URL}:latest"
 
 # Deploy to ECS
 aws ecs update-service \
