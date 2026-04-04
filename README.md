@@ -40,7 +40,16 @@ CloudLog solves this with an asynchronous processing pipeline. The user submits 
 
 ## 2. Architecture
 
-![CloudLog Architecture](architecture/deployed_architecture.jpg)
+### Deployed Architecture
+![CloudLog Deployed Architecture](architecture/deployed_architecture.jpg)
+
+### Production Reference Architecture
+![CloudLog Production Architecture](architecture/production_architecture.jpg)
+
+The production architecture introduces three changes for network isolation:
+- ECS Fargate moves to a **private subnet**, removing its public IP
+- A **NAT Gateway** in the public subnet handles outbound traffic to SQS and ECR via the internet gateway
+- **VPC Gateway Endpoints** for S3 and DynamoDB and a **VPC Interface Endpoint** for CloudWatch keep that traffic fully private within AWS's network, bypassing the NAT Gateway entirely
 
 ### Request flow
 
@@ -68,6 +77,7 @@ cloudlog/
 │   ├── handler.py      # Lambda handler: POST /jobs, GET /jobs/{id}, GET /jobs/{id}/report
 │   └── requirements.txt
 ├── worker/
+│   ├── __init__.py 
 │   ├── app.py          # SQS polling loop
 │   ├── parser.py       # Combined Log Format parser
 │   ├── metrics.py      # Analytics computation
@@ -76,6 +86,7 @@ cloudlog/
 │   └── requirements.txt
 ├── cli/
 │   └── cloudlog.py     # CLI client
+│   └── requirements.txt 
 └── README.md
 ```
 
@@ -88,8 +99,9 @@ cloudlog/
 | **ECS Fargate over Lambda** | The worker is a long-running polling loop as it runs continuously and pulls work from SQS. Lambda's invocation model is event-triggered with a max runtime of 15 minutes and is the wrong fit. ECS runs the container indefinitely with no cold start overhead per message. |
 | **DynamoDB over RDS** | Job records have a single access pattern: get or update by `job_id`. There are no joins, no relational queries, and no schema migrations. DynamoDB's `PAY_PER_REQUEST` billing essentially means zero cost at low traffic. |
 | **SQS over direct invocation** | SQS decouples the API from the worker entirely. If the worker is down, messages queue up and are processed when it recovers. Built-in retry and DLQ fallback require no application code. |
-| **Public IP over NAT Gateway** | ECS tasks are assigned public IPs rather than routing through a NAT Gateway. This avoids the $30+/month fixed cost, which is unnecessary for a portfolio environment. In production, private subnets with a NAT would be preferred for network isolation purposes. |
+| **Public IP over NAT Gateway (deployed)** | ECS tasks are assigned public IPs rather than routing through a NAT Gateway. This avoids the $30+/month fixed cost, which is unnecessary for a portfolio environment. See production reference architecture for the production-grade equivalent. |
 | **Separate ECS IAM roles** | ECS uses two IAM roles: an execution role (used by ECS to pull the Docker image from ECR and send logs to CloudWatch) and a task role (used by the worker's `boto3` calls at runtime). Combining them would over-permission the application code. |
+| **VPC Endpoints for S3, DynamoDB, CloudWatch (production)** | Gateway Endpoints for S3 and DynamoDB are free and keep data and state traffic private within AWS's network. A CloudWatch Interface Endpoint ensures observability traffic does not depend on the internet egress path. SQS uses the NAT Gateway path to avoid Interface Endpoint hourly costs. |
 
 ---
 
