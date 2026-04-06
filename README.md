@@ -135,11 +135,11 @@ Estimated monthly cost for a portfolio environment with light usage:
 | DynamoDB | PAY_PER_REQUEST, low traffic | ~$0 |
 | SQS | Free tier: 1M requests/month | ~$0 |
 | S3 | Minimal storage + GET/PUT requests | <$1 |
-| API Gateway | $3.50 per million calls | ~$0 |
+| API Gateway | $1 per million calls | ~$0 |
 | CloudWatch Logs | 14-day retention, low volume | <$1 |
-| NAT Gateway | Avoided by ECS tasks employing public IPs | $0 (saved ~$30) |
+| NAT Gateway | Avoided by ECS tasks employing public IPs | $0 (saved $30+) |
 
-> **Production note:** In production, private subnets with a NAT Gateway would be preferred for network isolation. The $30+/month fixed cost is the primary reason this is omitted here, and is documented as a known tradeoff.
+> **Production note:** In production, private subnets with a NAT Gateway would be preferred for network isolation. The $30+/month fixed cost is the primary reason this is omitted here and is documented as a known tradeoff.
 
 ---
 
@@ -205,7 +205,7 @@ python cli/cloudlog.py submit path/to/access.log --wait
 
 ### Submit a log file and wait for results
 
-```zsh
+```
 $ python cli/cloudlog.py submit worker/sample.log --wait            
 Uploading sample.log to S3...
 Creating job...
@@ -243,7 +243,7 @@ Average Bytes / Request: 2785.14
 
 ### Check job status
 
-```zsh
+```
 $ python cli/cloudlog.py status 91d779f2-2bce-4d15-88bc-3196e3fab182
 Job ID: 91d779f2-2bce-4d15-88bc-3196e3fab182
 Status: COMPLETED
@@ -252,7 +252,7 @@ Created: 2026-03-27T20:05:57.499137+00:00
 
 ### Fetch the report
 
-```zsh
+```
 $ python cli/cloudlog.py report 91d779f2-2bce-4d15-88bc-3196e3fab182
 Total Requests: 50
 Unique IPs: 9
