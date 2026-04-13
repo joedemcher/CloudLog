@@ -78,3 +78,4 @@ venv.bak/
 terraform/terraform.tfstate*
 terraform/.terraform/*
 *.zip
+/.idea
